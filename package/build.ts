@@ -91,24 +91,8 @@ function validateDownload(filePath: string, type: string): void {
 	}
 }
 
-// Pause between GitHub downloads to avoid rate limiting
-// Track if we've done a GitHub download this session
-let lastGitHubDownload = 0;
-
-async function pauseForGitHub(): Promise<void> {
-	const now = Date.now();
-	const timeSinceLastDownload = now - lastGitHubDownload;
-	const pauseDuration = 60000; // 60 seconds
-
-	if (lastGitHubDownload > 0 && timeSinceLastDownload < pauseDuration) {
-		const remainingPause = pauseDuration - timeSinceLastDownload;
-		console.log(
-			`Pausing ${Math.ceil(remainingPause / 1000)} seconds before next GitHub download...`,
-		);
-		await new Promise((resolve) => setTimeout(resolve, remainingPause));
-	}
-	lastGitHubDownload = Date.now();
-}
+// Rate-limit pause disabled — downloads run sequentially and we're authenticated
+async function pauseForGitHub(): Promise<void> {}
 
 // TODO: setup file watchers
 try {
@@ -1626,8 +1610,8 @@ async function buildNative() {
 			}
 		}
 
-		await $`mkdir -p src/native/macos/build && clang++ -c src/native/macos/nativeWrapper.mm -o src/native/macos/build/nativeWrapper.o -fobjc-arc -fno-objc-msgsend-selector-stubs -I./vendors/cef -std=c++20`;
-		await $`mkdir -p src/native/build && clang++ -o src/native/build/libNativeWrapper.dylib src/native/macos/build/nativeWrapper.o ./vendors/zig-asar/libasar.dylib -framework Cocoa -framework WebKit -framework QuartzCore -framework UserNotifications -F./vendors/cef/Release -weak_framework 'Chromium Embedded Framework' -L./vendors/cef/build/libcef_dll_wrapper -lcef_dll_wrapper -stdlib=libc++ -shared -install_name @executable_path/libNativeWrapper.dylib -Wl,-rpath,@executable_path`;
+		await $`mkdir -p src/native/macos/build && /usr/bin/clang++ -c src/native/macos/nativeWrapper.mm -o src/native/macos/build/nativeWrapper.o -fobjc-arc -fno-objc-msgsend-selector-stubs -I./vendors/cef -std=c++20`;
+		await $`mkdir -p src/native/build && /usr/bin/clang++ -o src/native/build/libNativeWrapper.dylib src/native/macos/build/nativeWrapper.o ./vendors/zig-asar/libasar.dylib -framework Cocoa -framework WebKit -framework QuartzCore -framework UserNotifications -F./vendors/cef/Release -weak_framework 'Chromium Embedded Framework' -L./vendors/cef/build/libcef_dll_wrapper -lcef_dll_wrapper -stdlib=libc++ -shared -install_name @executable_path/libNativeWrapper.dylib -Wl,-rpath,@executable_path`;
 	} else if (OS === "win") {
 		const webview2Include = `./vendors/webview2/Microsoft.Web.WebView2/build/native/include`;
 		// Always use x64 for Windows since we only build x64 Windows binaries
